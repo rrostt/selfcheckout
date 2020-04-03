@@ -2,6 +2,8 @@ import 'package:barcode_scan/barcode_scan.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import './api.dart';
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -12,23 +14,24 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: ShoppingView(title: 'Self-checkout'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class ShoppingView extends StatefulWidget {
+  ShoppingView({Key key, this.title}) : super(key: key);
 
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _ShoppingViewState createState() => _ShoppingViewState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _ShoppingViewState extends State<ShoppingView> {
   String _barcode = '';
   String _error = '';
+  List<Item> _items = [];
 
   Future<String> _scan() async {
     try {
@@ -48,7 +51,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void _addItem() async {
     try {
       String code = await _scan();
+      Item item = await Api.getItem(code);
       setState(() {
+        _items.add(item);
         _barcode = code;
         _error = null;
       });
@@ -56,6 +61,8 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() => _error = e.toString());
     }
   }
+
+  void _checkout() {}
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +73,18 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text('Barcode: $_barcode'),
+            Expanded(
+              child: ListView(
+                children: _items
+                    .asMap()
+                    .map((i, item) => MapEntry(i, _listItem(item, i)))
+                    .values
+                    .toList(),
+              ),
+            ),
+            _summary(),
             if (_error != null) Text('Error: $_error')
           ],
         ),
@@ -79,4 +96,33 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     );
   }
+
+  Widget _summary() {
+    var total = _items.length > 0
+        ? _items.map((item) => item.ore).reduce((sum, item) => sum + item)
+        : 0;
+
+    return GestureDetector(
+      onTap: _checkout,
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(color: Colors.pink),
+        child: Center(child: Text('Total: ${total / 100}')),
+      ),
+    );
+  }
+
+  Widget _listItem(Item item, int index) => Dismissible(
+        key: Key('$index'),
+        onDismissed: (direction) {
+          setState(() {
+            _items.removeAt(index);
+          });
+        },
+        child: ListTile(
+          title: Text(item.name),
+          trailing: Text('${item.ore / 100}'),
+          leading: Icon(Icons.shopping_basket),
+        ),
+      );
 }
