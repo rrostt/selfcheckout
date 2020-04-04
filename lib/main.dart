@@ -29,8 +29,8 @@ class ShoppingView extends StatefulWidget {
 }
 
 class _ShoppingViewState extends State<ShoppingView> {
-  String _barcode = '';
-  String _error = '';
+  bool _loading = false;
+  String _error;
   List<Item> _items = [];
 
   Future<String> _scan() async {
@@ -48,17 +48,24 @@ class _ShoppingViewState extends State<ShoppingView> {
     }
   }
 
-  void _addItem() async {
+  void _addItem(context) async {
     try {
       String code = await _scan();
+      setState(() {
+        _loading = true;
+      });
+      Scaffold.of(context).removeCurrentSnackBar();
       Item item = await Api.getItem(code);
       setState(() {
         _items.add(item);
-        _barcode = code;
         _error = null;
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      Scaffold.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
@@ -84,15 +91,18 @@ class _ShoppingViewState extends State<ShoppingView> {
                     .toList(),
               ),
             ),
+            if (_loading) Center(child: CircularProgressIndicator()),
             _summary(),
             if (_error != null) Text('Error: $_error')
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addItem,
-        tooltip: 'Add',
-        child: Icon(Icons.add),
+      floatingActionButton: Builder(
+        builder: (context) => FloatingActionButton(
+          onPressed: () => _addItem(context),
+          tooltip: 'Add',
+          child: Icon(Icons.add),
+        ),
       ),
     );
   }
