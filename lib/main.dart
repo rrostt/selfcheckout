@@ -1,8 +1,10 @@
 import 'package:barcode_scan/barcode_scan.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart';
 
 import './api.dart';
+import './checkout.dart';
 
 void main() => runApp(MyApp());
 
@@ -69,7 +71,16 @@ class _ShoppingViewState extends State<ShoppingView> {
     }
   }
 
-  void _checkout() {}
+  void _checkout() async {
+    final result = await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (context) => Checkout(_items)));
+
+    if (result) {
+      setState(() {
+        _items.clear();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +128,7 @@ class _ShoppingViewState extends State<ShoppingView> {
       child: Container(
         padding: EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(color: Colors.pink),
-        child: Center(child: Text('Total: ${total / 100}')),
+        child: Center(child: Text('Att Betala: ${total / 100}')),
       ),
     );
   }
