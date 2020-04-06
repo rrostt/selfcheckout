@@ -12,6 +12,12 @@ class Checkout extends StatefulWidget {
 }
 
 class _CheckoutState extends State<Checkout> {
+  bool _paid = false;
+
+  int _getTotal() => widget.items.length > 0
+      ? widget.items.map((item) => item.ore).reduce((sum, item) => sum + item)
+      : 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -19,26 +25,56 @@ class _CheckoutState extends State<Checkout> {
         title: Text('Checkout'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            _summary(),
-            Container(height: 40),
-            Builder(
-              builder: (context) => RaisedButton(
-                onPressed: () async {
-                  var result = await _pay(context);
-                  Navigator.of(context).pop(result);
-                },
-                color: Colors.pink,
-                child: Text(
-                  'Betala',
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: _paid ? _paymentConfirmation(context) : _toPay(context),
       ),
+    );
+  }
+
+  Widget _toPay(context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        _summary(),
+        Container(height: 40),
+        Builder(
+          builder: (context) => RaisedButton(
+            onPressed: () async {
+              var result = await _pay(context);
+              setState(() {
+                _paid = result;
+              });
+            },
+            color: Colors.pink,
+            child: Text(
+              'Betala',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _paymentConfirmation(context) {
+    var total = _getTotal();
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Text('Tack!'),
+        Container(height: 30),
+        Text(
+          '${(total / 100).toStringAsFixed(2)}',
+          style: TextStyle(fontSize: 36),
+        ),
+        Text('Betalt'),
+        Container(height: 60),
+        RaisedButton(
+          onPressed: () {
+            Navigator.of(context).pop(true);
+          },
+          child: Text('Ok'),
+        ),
+      ],
     );
   }
 
@@ -62,7 +98,6 @@ class _CheckoutState extends State<Checkout> {
     try {
       // var phonenumber = '0712345678';
       // var paymentId = await Api.initPayment(widget.items, phonenumber);
-      // print('got the paymentid = $paymentId');
       var url =
           'swish://paymentrequest'; // ?token=$_paymentRequestToken&callbackurl=$callbackUrl';
       // var url = Api.getPaymentUrl(paymentId);
